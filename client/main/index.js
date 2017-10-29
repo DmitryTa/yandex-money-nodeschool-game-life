@@ -27,6 +27,8 @@ App.setWSListeners = function(socket, gameController) {
             case 'UPDATE_STATE':
                 self.game.setState(data);    
             break;
+            default:
+                console.log(`Unexpected message type: ${type}`)
         }
     };
       

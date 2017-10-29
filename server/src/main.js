@@ -4,7 +4,16 @@ const url = require('url');
 const WebSocket = require('ws');
 const LifeGameVirtualDom = require('../lib/LifeGameVirtualDom');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({ 
+    port: 8080,
+    verifyClient({req}, done) {
+        const {token} = url.parse(req.url, true).query;
+        if (token) {
+            return done(token);
+        }
+        done(false);
+    } 
+});
 
 LifeGameVirtualDom.prototype.sendUpdates = function(data) {
     wss.clients.forEach(client => {
@@ -20,14 +29,15 @@ LifeGameVirtualDom.prototype.sendUpdates = function(data) {
 const LifeGame = new LifeGameVirtualDom();
 
 wss.on('connection', (ws, req) => {
-    const {token} = url.parse(req.url, true).query;
-
+   
     ws.on('message', message => {
         const {type, data} = JSON.parse(message);
         switch(type) {
             case 'ADD_POINT':
                 LifeGame.applyUpdates(data);
             break;
+            default:
+                console.log(`Unexpected message type: ${type}`)
         }
     });
 
@@ -41,7 +51,7 @@ wss.on('connection', (ws, req) => {
             state: LifeGame.state,
             settings: LifeGame.settings,
             user: {
-                token: token, 
+                token: url.parse(req.url, true).query.token, 
                 color: '#'+(Math.random()*0xFFFFFF<<0).toString(16)
             }
         }
